@@ -5,6 +5,7 @@
 作業を始める前に必ず一読してください。
 
 > 📚 関連ドキュメント
+> - 元の設計書（原典）→ [`docs/SPEC.md`](./docs/SPEC.md)
 > - ドメイン知識・拡張スキル → [`SKILL.md`](./SKILL.md)
 > - 設計の詳細 → [`docs/ARCHITECTURE.md`](./docs/ARCHITECTURE.md)
 > - `.tfl` / `.tflx` 形式リファレンス → [`docs/TFL_FORMAT.md`](./docs/TFL_FORMAT.md)

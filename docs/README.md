@@ -6,6 +6,7 @@ Tableau Prep Flow Analyzer (TPFA) の開発ドキュメント集です。
 
 | ドキュメント | 内容 |
 | --- | --- |
+| [SPEC.md](./SPEC.md) | **元の設計書（開発ロードマップ＆実装仕様書の原典）** + 実装との差分メモ |
 | [ARCHITECTURE.md](./ARCHITECTURE.md) | システム構成・データフロー・各レイヤーの責務・データモデル |
 | [TFL_FORMAT.md](./TFL_FORMAT.md) | `.tfl` / `.tflx` ファイル形式のリファレンスと解析方針 |
 | [EXTENDING.md](./EXTENDING.md) | 機能追加の具体的な手順（ノードタイプ/リンター/差分/ドキュメント） |

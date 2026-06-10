@@ -30,6 +30,7 @@ Tableau Prep のフローファイル（`.tfl` / `.tflx`）を **ブラウザ内
 | --- | --- |
 | [`AGENTS.md`](./AGENTS.md) | 開発エージェント向けの運用ガイド・コマンド・規約・ガードレール |
 | [`SKILL.md`](./SKILL.md) | Tableau Prep 解析のドメイン知識と拡張スキル |
+| [`docs/SPEC.md`](./docs/SPEC.md) | 元の設計書（開発ロードマップ＆実装仕様書の原典）+ 実装との差分メモ |
 | [`docs/ARCHITECTURE.md`](./docs/ARCHITECTURE.md) | システム構成・データフロー・データモデル |
 | [`docs/TFL_FORMAT.md`](./docs/TFL_FORMAT.md) | `.tfl` / `.tflx` 形式リファレンスと解析方針 |
 | [`docs/EXTENDING.md`](./docs/EXTENDING.md) | 機能追加の具体的な手順（ノードタイプ/リンター/差分/ドキュメント/タブ） |
