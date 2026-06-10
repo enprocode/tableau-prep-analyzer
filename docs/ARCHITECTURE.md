@@ -85,7 +85,10 @@ interface FlowConnection { id: string; source: string; target: string; }
 
 ### Phase 5: 差分
 `(ParsedFlow A, ParsedFlow B) → diffFlows() → FlowDiff → DiffViewer`。
-数式の語句単位ハイライトは `diffWords()`（LCS）。
+ステップの追加/削除/変更（名前・接続情報・計算フィールド・結合条件・フィルタ）に加え、
+**接続（トポロジー）の追加/削除**も `FlowDiff.connections` に抽出する。これにより
+ステップ ID が同じまま配線だけが変わった変更も検知できる。数式の語句単位ハイライトは
+`diffWords()`（LCS）。詳細は [EXTENDING.md](./EXTENDING.md) の「差分の比較項目を追加する」。
 
 ## 5. 状態管理
 

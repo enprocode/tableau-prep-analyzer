@@ -130,6 +130,20 @@ for (const [key, label] of [
 数式の細かな変更は `diffWords(before, after)`（LCS ベースの語句 diff）で
 赤/緑のセグメントに分解し、`DiffViewer` がハイライト表示します。
 
+### 接続（トポロジー）の差分
+
+ステップ ID が同じまま **配線だけが変わる**（Clean を Join の前に移動する等）ケースは、
+ノード比較だけでは見逃します。これを防ぐため `diffFlows` は次の 2 段構えで接続を比較します。
+
+- `diffConnections(a, b)` … 全エッジ（`source→target`）を集合比較し、追加/削除を
+  `FlowDiff.connections`（`ConnectionChange[]`）として網羅抽出。サマリーにも
+  `connectionAdded` / `connectionRemoved` を集計。
+- `diffNodeConnections(id, …)` … 両方に存在するノードの「出力先」変更を `FieldChange`
+  として注入し、配線が変わったステップを `modified` に反映。
+
+> エッジは必ず **source 側で 1 度だけ** 検知する（入力元の変化は上流ノードの出力先変化として
+> 捕捉される）ため、二重計上しません。新しい接続関連の差分を足す場合もこの原則を守ること。
+
 ---
 
 ## 6. スキル: ドキュメント出力を拡張する（`components/DocumentViewer.tsx`）

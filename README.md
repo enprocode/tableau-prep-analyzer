@@ -12,7 +12,7 @@ Tableau Prep のフローファイル（`.tfl` / `.tflx`）を **ブラウザ内
 | **Phase 2** | インタラクティブなフロー図の可視化（React Flow / 自動レイアウト / 詳細パネル） | `components/FlowVisualizer.tsx`, `utils/flowLayout.ts` |
 | **Phase 3** | 健全性・ベストプラクティス診断（Late Filter / Empty Step / Missing Type 等） | `utils/tflLinter.ts`, `components/LinterAlerts.tsx` |
 | **Phase 4** | 仕様の自動ドキュメント化（Markdown 生成 / コピー / ダウンロード） | `components/DocumentViewer.tsx` |
-| **Phase 5** | 新旧 2 フローのビジュアル差分比較（ステップ単位＋数式の語句単位ハイライト） | `utils/tflDiff.ts`, `components/DiffViewer.tsx` |
+| **Phase 5** | 新旧 2 フローのビジュアル差分比較（ステップ単位＋接続（トポロジー）の変更＋数式の語句単位ハイライト） | `utils/tflDiff.ts`, `components/DiffViewer.tsx` |
 
 ## 🚀 技術スタック
 
