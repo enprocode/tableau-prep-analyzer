@@ -30,13 +30,28 @@ export interface StepDiff {
   changes: FieldChange[];
 }
 
+/** トポロジー（接続）の変更 1 件。 */
+export interface ConnectionChange {
+  kind: "added" | "removed";
+  source: string;
+  target: string;
+  sourceName: string;
+  targetName: string;
+}
+
 export interface FlowDiff {
   steps: StepDiff[];
+  /** ステップ間の接続（エッジ）の追加/削除。トポロジー変更の全体像。 */
+  connections: ConnectionChange[];
   summary: {
     added: number;
     removed: number;
     modified: number;
     unchanged: number;
+    /** 追加された接続（エッジ）の数 */
+    connectionAdded: number;
+    /** 削除された接続（エッジ）の数 */
+    connectionRemoved: number;
   };
 }
 
@@ -150,6 +165,90 @@ function diffNode(a: FlowNode, b: FlowNode): FieldChange[] {
   return changes;
 }
 
+/** ノードごとの出力先（下流）の隣接集合を構築する。 */
+interface EdgeMaps {
+  out: Map<string, Set<string>>;
+}
+
+function buildEdgeMaps(flow: ParsedFlow): EdgeMaps {
+  const out = new Map<string, Set<string>>();
+  for (const c of flow.connections) {
+    if (!out.has(c.source)) out.set(c.source, new Set());
+    out.get(c.source)!.add(c.target);
+  }
+  return { out };
+}
+
+/**
+ * あるノードの出力先（下流への接続）の変更を FieldChange として抽出する。
+ * ステップ ID が同じままトポロジーだけが変わったケースを見逃さないために必要。
+ * 各エッジは「source 側」で 1 度だけ検知されるため、入力元はここでは扱わない
+ * （入力元の変化は、その上流ノードの出力先変化として必ず捕捉される）。
+ */
+function diffNodeConnections(
+  id: string,
+  aMaps: EdgeMaps,
+  bMaps: EdgeMaps,
+  nameOf: (id: string) => string
+): FieldChange[] {
+  const changes: FieldChange[] = [];
+
+  const aOut = aMaps.out.get(id) ?? new Set<string>();
+  const bOut = bMaps.out.get(id) ?? new Set<string>();
+  for (const t of bOut)
+    if (!aOut.has(t))
+      changes.push({
+        label: "接続 (出力先)",
+        after: `→ ${nameOf(t)}`,
+        kind: "added",
+      });
+  for (const t of aOut)
+    if (!bOut.has(t))
+      changes.push({
+        label: "接続 (出力先)",
+        before: `→ ${nameOf(t)}`,
+        kind: "removed",
+      });
+
+  return changes;
+}
+
+/** 2 つのフロー間のエッジ（接続）の追加/削除を網羅的に抽出する。 */
+function diffConnections(a: ParsedFlow, b: ParsedFlow): ConnectionChange[] {
+  const key = (c: { source: string; target: string }) =>
+    `${c.source}\u0000${c.target}`;
+  const aEdges = new Map<string, { source: string; target: string }>();
+  const bEdges = new Map<string, { source: string; target: string }>();
+  for (const c of a.connections) aEdges.set(key(c), c);
+  for (const c of b.connections) bEdges.set(key(c), c);
+
+  const nameOf = (id: string) =>
+    b.nodes[id]?.name ?? a.nodes[id]?.name ?? id;
+
+  const result: ConnectionChange[] = [];
+  for (const [k, c] of bEdges) {
+    if (!aEdges.has(k))
+      result.push({
+        kind: "added",
+        source: c.source,
+        target: c.target,
+        sourceName: nameOf(c.source),
+        targetName: nameOf(c.target),
+      });
+  }
+  for (const [k, c] of aEdges) {
+    if (!bEdges.has(k))
+      result.push({
+        kind: "removed",
+        source: c.source,
+        target: c.target,
+        sourceName: nameOf(c.source),
+        targetName: nameOf(c.target),
+      });
+  }
+  return result;
+}
+
 /** 2 つのフローを比較する。 */
 export function diffFlows(a: ParsedFlow, b: ParsedFlow): FlowDiff {
   const steps: StepDiff[] = [];
@@ -157,6 +256,11 @@ export function diffFlows(a: ParsedFlow, b: ParsedFlow): FlowDiff {
     ...Object.keys(a.nodes),
     ...Object.keys(b.nodes),
   ]);
+
+  const aMaps = buildEdgeMaps(a);
+  const bMaps = buildEdgeMaps(b);
+  const nameOf = (id: string) =>
+    b.nodes[id]?.name ?? a.nodes[id]?.name ?? id;
 
   for (const id of allIds) {
     const na = a.nodes[id];
@@ -180,6 +284,8 @@ export function diffFlows(a: ParsedFlow, b: ParsedFlow): FlowDiff {
       });
     } else if (na && nb) {
       const changes = diffNode(na, nb);
+      // ステップ ID が同じままトポロジー（接続）だけが変わった場合も検知する
+      changes.push(...diffNodeConnections(id, aMaps, bMaps, nameOf));
       steps.push({
         status: changes.length ? "modified" : "unchanged",
         nodeId: id,
@@ -189,6 +295,8 @@ export function diffFlows(a: ParsedFlow, b: ParsedFlow): FlowDiff {
       });
     }
   }
+
+  const connections = diffConnections(a, b);
 
   // 表示順: modified → added → removed → unchanged、その中は名前順
   const order: Record<StepStatus, number> = {
@@ -203,11 +311,14 @@ export function diffFlows(a: ParsedFlow, b: ParsedFlow): FlowDiff {
 
   return {
     steps,
+    connections,
     summary: {
       added: steps.filter((s) => s.status === "added").length,
       removed: steps.filter((s) => s.status === "removed").length,
       modified: steps.filter((s) => s.status === "modified").length,
       unchanged: steps.filter((s) => s.status === "unchanged").length,
+      connectionAdded: connections.filter((c) => c.kind === "added").length,
+      connectionRemoved: connections.filter((c) => c.kind === "removed").length,
     },
   };
 }

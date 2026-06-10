@@ -35,3 +35,31 @@ for (const s of diff.steps) {
 
 console.log("\n=== WORD DIFF ===");
 console.log(diffWords("[Profit] / [Sales]", "([Profit] / [Sales]) * 100"));
+
+console.log("\n=== TOPOLOGY-ONLY DIFF (same IDs, rewired edges) ===");
+// v1 を複製し、ノードの中身は一切変えずに接続だけを張り替える
+const rewired = parseFlowDocument(
+  JSON.parse(readFileSync("public/samples/superstore_v1.tfl", "utf8"))
+);
+rewired.fileName = "superstore_v1_rewired.tfl";
+// Clean Orders -> Join だったものを Clean Orders -> 出力直前ステップ へ張り替え
+const edge = rewired.connections.find(
+  (c) => c.source === "n-clean-orders" && c.target === "n-join"
+)!;
+edge.target = "n-clean-after-join";
+edge.id = "n-clean-orders->n-clean-after-join";
+
+const topoDiff = diffFlows(v1, rewired);
+console.log("summary", topoDiff.summary);
+console.log(
+  "connection changes:",
+  topoDiff.connections.map((c) => `${c.kind} ${c.sourceName} -> ${c.targetName}`)
+);
+const modifiedSteps = topoDiff.steps
+  .filter((s) => s.status === "modified")
+  .map((s) => `${s.name}: ${s.changes.map((c) => c.label).join(", ")}`);
+console.log("modified steps:", modifiedSteps);
+if (topoDiff.connections.length === 0) {
+  throw new Error("FAIL: トポロジー変更が検知されませんでした");
+}
+console.log("OK: トポロジー変更を検知しました");

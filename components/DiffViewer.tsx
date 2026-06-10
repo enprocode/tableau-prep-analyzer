@@ -1,11 +1,12 @@
 "use client";
 
 import { useMemo } from "react";
-import { Plus, Minus, Pencil, ArrowRight } from "lucide-react";
+import { Plus, Minus, Pencil, ArrowRight, Workflow } from "lucide-react";
 import type { ParsedFlow } from "@/utils/tflParser";
 import {
   diffFlows,
   diffWords,
+  type ConnectionChange,
   type FieldChange,
   type StepDiff,
   type StepStatus,
@@ -51,6 +52,8 @@ const STATUS_META: Record<
 export default function DiffViewer({ before, after }: Props) {
   const diff = useMemo(() => diffFlows(before, after), [before, after]);
   const visibleSteps = diff.steps.filter((s) => s.status !== "unchanged");
+  const hasAnyChange =
+    visibleSteps.length > 0 || diff.connections.length > 0;
 
   return (
     <div className="tpfa-scroll mx-auto h-full max-w-4xl overflow-y-auto p-6">
@@ -81,18 +84,75 @@ export default function DiffViewer({ before, after }: Props) {
         />
       </div>
 
-      {visibleSteps.length === 0 ? (
+      {/* 接続（トポロジー）の変更サマリー */}
+      {diff.connections.length > 0 && (
+        <p className="mb-4 text-center text-xs text-slate-500">
+          接続（トポロジー）の変更:{" "}
+          <span className="font-semibold text-green-600">
+            +{diff.summary.connectionAdded}
+          </span>{" "}
+          /{" "}
+          <span className="font-semibold text-red-600">
+            -{diff.summary.connectionRemoved}
+          </span>
+        </p>
+      )}
+
+      {!hasAnyChange ? (
         <p className="rounded-lg border border-slate-200 bg-white py-12 text-center text-slate-500 dark:border-slate-700 dark:bg-slate-800">
           2 つのフローに差分はありません。
         </p>
       ) : (
-        <ul className="space-y-3">
-          {visibleSteps.map((step) => (
-            <StepCard key={step.nodeId} step={step} />
-          ))}
-        </ul>
+        <div className="space-y-6">
+          {diff.connections.length > 0 && (
+            <TopologySection connections={diff.connections} />
+          )}
+          {visibleSteps.length > 0 && (
+            <ul className="space-y-3">
+              {visibleSteps.map((step) => (
+                <StepCard key={step.nodeId} step={step} />
+              ))}
+            </ul>
+          )}
+        </div>
       )}
     </div>
+  );
+}
+
+/** ステップ間の接続（トポロジー）の変更を一覧で表示する。 */
+function TopologySection({
+  connections,
+}: {
+  connections: ConnectionChange[];
+}) {
+  return (
+    <section className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-800">
+      <h3 className="mb-2 flex items-center gap-1.5 text-sm font-semibold text-slate-700 dark:text-slate-200">
+        <Workflow size={16} className="text-slate-500" />
+        接続（トポロジー）の変更
+      </h3>
+      <ul className="space-y-1 font-mono text-xs">
+        {connections.map((c) => {
+          const added = c.kind === "added";
+          return (
+            <li
+              key={`${c.kind}-${c.source}-${c.target}`}
+              className={`flex items-center gap-1.5 rounded px-2 py-1 ${
+                added
+                  ? "bg-green-50 text-green-700 dark:bg-green-950/30 dark:text-green-300"
+                  : "bg-red-50 text-red-700 line-through decoration-red-400 dark:bg-red-950/30 dark:text-red-300"
+              }`}
+            >
+              <span className="select-none font-bold">{added ? "+" : "-"}</span>
+              <span>{c.sourceName}</span>
+              <ArrowRight size={12} className="shrink-0" />
+              <span>{c.targetName}</span>
+            </li>
+          );
+        })}
+      </ul>
+    </section>
   );
 }
 

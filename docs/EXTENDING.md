@@ -89,6 +89,14 @@ if (node.type === "Clean" && calcCount > 10) {
 - `kind === "changed"` で `before`/`after` の両方があると、`DiffViewer` が
   `diffWords()` による **語句単位の赤/緑ハイライト**を自動適用する。
 
+> 🔗 **トポロジー（接続）の差分**: ステップ ID が同じまま接続だけが張り替えられた場合
+> （Clean を Join の前に移動する等）も見逃さないよう、`diffFlows` は
+> `diffConnections()` でエッジの追加/削除を網羅的に抽出し（`FlowDiff.connections` /
+> `summary.connectionAdded` / `connectionRemoved`）、各ソースノードには
+> `diffNodeConnections()` が「接続 (出力先)」の変更を注入して `modified` に反映します。
+> エッジは必ず **source 側で 1 度だけ** 検知されるため二重計上されません。
+> 表示は `DiffViewer` の「接続（トポロジー）の変更」セクションとステップカード内に出ます。
+
 ---
 
 ## 4. ドキュメント出力にセクションを追加する
