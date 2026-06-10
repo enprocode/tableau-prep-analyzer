@@ -1,7 +1,8 @@
 {
-  "name": "tpfa-scaffold",
+  "name": "tpfa",
   "version": "0.1.0",
   "private": true,
+  "description": "Tableau Prep Flow Analyzer - .tfl/.tflx をブラウザ内で解析・可視化・診断・比較するオールインワン Web アプリ",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
