@@ -1,0 +1,140 @@
+{
+  "parameters": {},
+  "initialNodes": ["n-input-orders", "n-input-returns"],
+  "nodes": {
+    "n-input-orders": {
+      "nodeType": ".v2018_2_3.LoadExcel",
+      "name": "Orders",
+      "id": "n-input-orders",
+      "baseType": "input",
+      "connectionId": "c-excel",
+      "connectionAttributes": {
+        "class": "excel-direct",
+        "filename": "C:/data/Sample - Superstore 2024.xlsx"
+      },
+      "relation": { "table": "Orders$", "type": "table" },
+      "fields": [
+        { "name": "Order ID", "type": "string" },
+        { "name": "Order Date", "type": "date" },
+        { "name": "Region", "type": "string" },
+        { "name": "Sales", "type": "real" },
+        { "name": "Profit", "type": "real" },
+        { "name": "Quantity", "type": "integer" }
+      ],
+      "nextNodes": [
+        { "namespace": "Default", "nextNodeId": "n-clean-orders", "nextNamespace": "Default" }
+      ]
+    },
+    "n-input-returns": {
+      "nodeType": ".v1.LoadCsv",
+      "name": "Returns",
+      "id": "n-input-returns",
+      "baseType": "input",
+      "connectionId": "c-csv",
+      "connectionAttributes": {
+        "class": "textscan",
+        "filename": "C:/data/returns.csv"
+      },
+      "fields": [
+        { "name": "Order ID", "type": "string" },
+        { "name": "Returned", "type": "string" }
+      ],
+      "nextNodes": [
+        { "namespace": "Default", "nextNodeId": "n-clean-returns", "nextNamespace": "Default" }
+      ]
+    },
+    "n-clean-returns": {
+      "nodeType": ".v1.Container",
+      "name": "Empty Cleanup",
+      "id": "n-clean-returns",
+      "baseType": "superNode",
+      "loomContainer": {
+        "nodeName": "Empty Cleanup",
+        "nodes": {}
+      },
+      "nextNodes": [
+        { "namespace": "Default", "nextNodeId": "n-join", "nextNamespace": "Default" }
+      ]
+    },
+    "n-clean-orders": {
+      "nodeType": ".v1.Container",
+      "name": "Clean Orders",
+      "id": "n-clean-orders",
+      "baseType": "superNode",
+      "loomContainer": {
+        "nodeName": "Clean Orders",
+        "nodes": {
+          "a1": {
+            "nodeType": ".v1.AddColumn",
+            "columnName": "Profit Ratio",
+            "expression": "([Profit] / [Sales]) * 100"
+          },
+          "a2": {
+            "nodeType": ".v1.ChangeColumnType",
+            "columnName": "Order Date",
+            "type": "date"
+          },
+          "a3": {
+            "nodeType": ".v1.AddColumn",
+            "columnName": "High Value Order",
+            "expression": "IF [Sales] > 1000 THEN 'Yes' ELSE 'No' END"
+          }
+        }
+      },
+      "nextNodes": [
+        { "namespace": "Default", "nextNodeId": "n-join", "nextNamespace": "Default" }
+      ]
+    },
+    "n-join": {
+      "nodeType": ".v2018_2_3.SuperJoin",
+      "name": "Join Orders + Returns",
+      "id": "n-join",
+      "baseType": "superNode",
+      "joinType": "left",
+      "conditions": [
+        { "leftExpression": "[Order ID]", "rightExpression": "[Order ID]", "comparator": "==" }
+      ],
+      "nextNodes": [
+        { "namespace": "Default", "nextNodeId": "n-clean-after-join", "nextNamespace": "Default" }
+      ]
+    },
+    "n-clean-after-join": {
+      "nodeType": ".v1.Container",
+      "name": "Filter Returns",
+      "id": "n-clean-after-join",
+      "baseType": "superNode",
+      "loomContainer": {
+        "nodeName": "Filter Returns",
+        "nodes": {
+          "f1": {
+            "nodeType": ".v1.FilterOperation",
+            "filterExpression": "[Returned] = 'Yes' AND [Region] = 'West'"
+          }
+        }
+      },
+      "nextNodes": [
+        { "namespace": "Default", "nextNodeId": "n-output", "nextNamespace": "Default" }
+      ]
+    },
+    "n-output": {
+      "nodeType": ".v2019_1_4.WriteToHyper",
+      "name": "Output Returned Orders",
+      "id": "n-output",
+      "baseType": "output",
+      "outputFile": "C:/output/returned_orders_2024.hyper",
+      "nextNodes": []
+    }
+  },
+  "connections": {
+    "c-excel": {
+      "connectionType": "excel-direct",
+      "name": "Sample - Superstore 2024.xlsx",
+      "connectionAttributes": { "filename": "C:/data/Sample - Superstore 2024.xlsx" }
+    },
+    "c-csv": {
+      "connectionType": "textscan",
+      "name": "returns.csv",
+      "connectionAttributes": { "filename": "C:/data/returns.csv" }
+    }
+  }
+}
