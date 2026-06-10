@@ -22,6 +22,18 @@ Tableau Prep のフローファイル（`.tfl` / `.tflx`）を **ブラウザ内
 - **ZIP 解凍 (.tflx 用)**: `jszip`
 - **差分比較**: 自作のオブジェクト比較ロジック（LCS による語句単位 diff を含む）
 
+## 📚 開発ドキュメント
+
+今後の開発・拡張のためのドキュメントを用意しています。
+
+| ドキュメント | 内容 |
+| --- | --- |
+| [`AGENTS.md`](./AGENTS.md) | 開発エージェント向けの運用ガイド・コマンド・規約・ガードレール |
+| [`SKILL.md`](./SKILL.md) | Tableau Prep 解析のドメイン知識と拡張スキル |
+| [`docs/ARCHITECTURE.md`](./docs/ARCHITECTURE.md) | システム構成・データフロー・データモデル |
+| [`docs/TFL_FORMAT.md`](./docs/TFL_FORMAT.md) | `.tfl` / `.tflx` 形式リファレンスと解析方針 |
+| [`docs/EXTENDING.md`](./docs/EXTENDING.md) | 機能追加の具体的な手順（ノードタイプ/リンター/差分/ドキュメント/タブ） |
+
 ## 🛠️ セットアップ
 
 ```bash
