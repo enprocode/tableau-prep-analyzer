@@ -50,7 +50,7 @@ npm run dev                      # 開発サーバー (http://localhost:3000)
 npm run build                    # 本番ビルド（型チェックを含む）
 npm run start                    # 本番サーバー
 npm run lint                     # ESLint（Next 16 では `next lint` は廃止、これを使う）
-npx tsx scripts/smoke-test.mts   # パーサー/リンター/差分のロジック動作確認
+npm run smoke                    # パーサー/リンター/差分のロジック動作確認
 ```
 
 **完了の定義（Definition of Done）**: 変更後は最低限 `npm run lint` と `npm run build` を
