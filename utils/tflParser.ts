@@ -158,9 +158,22 @@ function deepCollect(
 /**
  * アップロードされたファイル（.tfl もしくは .tflx）を解析し、ParsedFlow を返す。
  */
+/** 対応している拡張子か（中身の ZIP マジック判定は別途）。 */
+export function isSupportedFlowFileName(name: string): boolean {
+  const lower = name.toLowerCase();
+  return lower.endsWith(".tfl") || lower.endsWith(".tflx") || lower.endsWith(".json");
+}
+
 export async function parseFlowFile(file: File): Promise<ParsedFlow> {
   const name = file.name.toLowerCase();
   const isZip = name.endsWith(".tflx") || (await looksLikeZip(file));
+
+  // 拡張子が不明で ZIP でもない場合は早期に分かりやすいエラーを返す
+  if (!isSupportedFlowFileName(file.name) && !isZip) {
+    throw new Error(
+      "対応していないファイル形式です。.tfl または .tflx ファイルを選択してください。"
+    );
+  }
 
   let jsonText: string;
   if (isZip) {
@@ -344,10 +357,10 @@ export function classifyNodeType(
     return "Output";
   }
 
-  // 入力系
+  // 入力系（&& は || より優先されるが、意図を括弧で明示）
   if (
     t.includes("load") ||
-    t.includes("extract") && b === "input" ||
+    (t.includes("extract") && b === "input") ||
     t.includes("input") ||
     b === "input"
   ) {

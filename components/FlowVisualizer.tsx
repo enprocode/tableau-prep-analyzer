@@ -103,7 +103,8 @@ export default function FlowVisualizer({
     [onSelectId]
   );
 
-  const { nodes, edges } = useMemo(() => {
+  // レイアウトはフロー構造に依存。選択状態は別途付与し、選択変更でパン/ズームをリセットしない。
+  const { baseNodes, edges } = useMemo(() => {
     const positions = computeLayout(flow);
     const rfNodes: Node[] = Object.values(flow.nodes).map((n) => ({
       id: n.id,
@@ -121,8 +122,17 @@ export default function FlowVisualizer({
       markerEnd: { type: MarkerType.ArrowClosed, color: "#94a3b8" },
     }));
 
-    return { nodes: rfNodes, edges: rfEdges };
+    return { baseNodes: rfNodes, edges: rfEdges };
   }, [flow]);
+
+  const nodes = useMemo(
+    () =>
+      baseNodes.map((n) => ({
+        ...n,
+        selected: n.id === selectedId,
+      })),
+    [baseNodes, selectedId]
+  );
 
   const onNodeClick = useCallback(
     (_: unknown, node: Node) => {

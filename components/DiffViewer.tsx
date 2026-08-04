@@ -69,7 +69,7 @@ export default function DiffViewer({ before, after }: Props) {
       </div>
 
       {/* サマリー */}
-      <div className="mb-6 grid grid-cols-4 gap-3 text-center">
+      <div className="mb-6 grid grid-cols-2 gap-3 text-center sm:grid-cols-4">
         <Stat label="追加" value={diff.summary.added} className="text-green-600" />
         <Stat label="削除" value={diff.summary.removed} className="text-red-600" />
         <Stat

@@ -40,9 +40,22 @@ Tableau Prep のフローファイル（`.tfl` / `.tflx`）を **ブラウザ内
 ```bash
 npm install
 npm run dev      # 開発サーバー (http://localhost:3000)
-npm run build    # 本番ビルド
-npm run start    # 本番サーバー
+npm run build    # 本番ビルド（静的出力 → out/）
+npm run start    # 本番サーバー（静的ホスティングでは不要）
+npm run lint     # ESLint
+npm run smoke    # パーサー / リンター / 差分のロジック検証
 ```
+
+## 🌐 デプロイ
+
+`next.config.ts` で `output: "export"` を有効にしており、`npm run build` の成果物は `out/` に静的ファイルとして出力されます。
+
+| ホスティング | 手順の目安 |
+| --- | --- |
+| **Vercel** | リポジトリを接続してデプロイ（Framework Preset: Next.js） |
+| **GitHub Pages** | `out/` を Pages に公開。プロジェクトサイトの場合は `basePath` / `assetPrefix` の設定が別途必要 |
+
+> 🔒 アップロードされたフローデータはブラウザ内のみで処理され、外部へ送信されません（サンプル読み込みも同一オリジンの静的ファイルです）。
 
 ## 📂 プロジェクト構造
 
@@ -73,7 +86,8 @@ npm run start    # 本番サーバー
 ロジック（パーサー / リンター / 差分）の単体動作はサンプルファイルで確認できます。
 
 ```bash
-npx tsx scripts/smoke-test.mts
+npm run smoke
+# または: npx tsx scripts/smoke-test.mts
 ```
 
 アプリ起動後、ランディング画面の「サンプルフローで試す」からサンプルを読み込めます。

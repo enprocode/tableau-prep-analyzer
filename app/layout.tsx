@@ -15,7 +15,9 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Tableau Prep Flow Analyzer (TPFA)",
   description:
-    "Tableau Prep のフローファイル (.tfl / .tflx) をブラウザ内で安全にパース・可視化・診断・比較するオールインワン分析ツール。",
+    "Tableau Prep のフローファイル (.tfl / .tflx) をブラウザ内で安全にパース・可視化・診断・比較するオールインワン分析ツール。データは外部に送信されません。",
+  applicationName: "TPFA",
+  robots: { index: true, follow: true },
 };
 
 export default function RootLayout({
