@@ -184,7 +184,7 @@ export function formatByteSize(bytes: number): string {
 export function assertUploadSizeAllowed(byteLength: number): void {
   if (byteLength > FLOW_FILE_LIMITS.maxUploadBytes) {
     throw new Error(
-      `ファイルサイズが上限（${formatByteSize(FLOW_FILE_LIMITS.maxUploadBytes)}）を超えています（${formatByteSize(byteLength)}）。より小さいファイルでお試しください。`
+      `ファイルサイズが上限（${formatByteSize(FLOW_FILE_LIMITS.maxUploadBytes)}）を超えています（${formatByteSize(byteLength)}、${byteLength.toLocaleString()} bytes）。より小さいファイルでお試しください。`
     );
   }
 }
