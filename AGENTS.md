@@ -71,6 +71,7 @@ components/           # プレゼンテーション層（"use client"）
   LinterAlerts.tsx    #   Phase 3: 診断結果 UI
   DocumentViewer.tsx  #   Phase 4: Markdown ドキュメント
   DiffViewer.tsx      #   Phase 5: 差分 UI
+  HelpGuide.tsx       #   アプリ内の使い方ガイド
 utils/                # ロジック層（UI 非依存・純粋関数中心）
   tflParser.ts        #   Phase 1: パース・正規化・共通型
   flowTheme.ts        #   ノードタイプ別の配色/アイコン
