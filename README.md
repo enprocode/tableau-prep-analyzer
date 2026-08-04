@@ -70,7 +70,8 @@ npm run smoke    # パーサー / リンター / 差分のロジック検証
 │   ├── NodeDetailPanel.tsx   # ノード詳細サイドパネル
 │   ├── LinterAlerts.tsx      # 健全性診断結果の表示
 │   ├── DocumentViewer.tsx    # 自動生成ドキュメント（Markdown / コピー）
-│   └── DiffViewer.tsx        # 2 フローのビジュアル差分比較
+│   ├── DiffViewer.tsx        # 2 フローのビジュアル差分比較
+│   └── HelpGuide.tsx         # アプリ内の使い方ガイド
 ├── utils/
 │   ├── tflParser.ts          # .tfl/.tflx のパース・ZIP 解凍・共通型定義
 │   ├── tflLinter.ts          # 静的解析（Linter）ルール
@@ -92,6 +93,7 @@ npm run smoke
 
 アプリ起動後、ランディング画面の「サンプルフローで試す」からサンプルを読み込めます。
 比較タブでは「サンプル (v2) と比較する」で差分表示を確認できます。
+ヘッダーまたはランディングの「使い方」から、アプリ内ガイドを開けます。
 
 ## 📥 対応ファイル形式
 

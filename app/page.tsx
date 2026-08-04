@@ -12,6 +12,7 @@ import {
   FileStack,
   X,
   ExternalLink,
+  CircleHelp,
 } from "lucide-react";
 import { parseFlowFile, type ParsedFlow } from "@/utils/tflParser";
 import { lintFlow, summarizeAlerts } from "@/utils/tflLinter";
@@ -19,6 +20,7 @@ import FlowVisualizer from "@/components/FlowVisualizer";
 import LinterAlerts from "@/components/LinterAlerts";
 import DocumentViewer from "@/components/DocumentViewer";
 import DiffViewer from "@/components/DiffViewer";
+import HelpGuide from "@/components/HelpGuide";
 
 type TabId = "flow" | "lint" | "doc" | "diff";
 
@@ -36,6 +38,7 @@ export default function Home() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
+  const [showHelp, setShowHelp] = useState(false);
 
   const loadFile = useCallback(async (file: File, slot: "A" | "B") => {
     setError(null);
@@ -90,12 +93,15 @@ export default function Home() {
     <div className="flex min-h-screen flex-col bg-slate-50 dark:bg-slate-950">
       <Header
         hasFlow={!!flowA}
+        helpOpen={showHelp}
+        onOpenHelp={() => setShowHelp(true)}
         onReset={() => {
           setFlowA(null);
           setFlowB(null);
           setSelectedNodeId(null);
           setActiveTab("flow");
           setError(null);
+          setShowHelp(false);
         }}
       />
 
@@ -109,11 +115,24 @@ export default function Home() {
         </div>
       )}
 
-      {!flowA ? (
+      {showHelp ? (
+        <HelpGuide
+          onBack={() => setShowHelp(false)}
+          onTrySample={
+            flowA
+              ? undefined
+              : () => {
+                  setShowHelp(false);
+                  void loadSample("A");
+                }
+          }
+        />
+      ) : !flowA ? (
         <LandingUploader
           loading={loading}
           onFile={(f) => loadFile(f, "A")}
           onSample={() => loadSample("A")}
+          onOpenHelp={() => setShowHelp(true)}
         />
       ) : (
         <div className="flex min-h-0 flex-1 flex-col">
@@ -186,9 +205,13 @@ export default function Home() {
 
 function Header({
   hasFlow,
+  helpOpen,
+  onOpenHelp,
   onReset,
 }: {
   hasFlow: boolean;
+  helpOpen: boolean;
+  onOpenHelp: () => void;
   onReset: () => void;
 }) {
   return (
@@ -209,7 +232,18 @@ function Header({
           </p>
         </div>
       </div>
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-2 sm:gap-3">
+        {!helpOpen && (
+          <button
+            type="button"
+            onClick={onOpenHelp}
+            className="inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-sm font-medium text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
+            aria-label="使い方を開く"
+          >
+            <CircleHelp size={16} aria-hidden />
+            <span className="hidden sm:inline">使い方</span>
+          </button>
+        )}
         {hasFlow && (
           <button
             type="button"
@@ -253,10 +287,12 @@ function LandingUploader({
   loading,
   onFile,
   onSample,
+  onOpenHelp,
 }: {
   loading: boolean;
   onFile: (f: File) => void;
   onSample: () => void;
+  onOpenHelp: () => void;
 }) {
   return (
     <div className="flex flex-1 flex-col items-center justify-center px-4 py-12">
@@ -268,7 +304,7 @@ function LandingUploader({
           すべての処理はブラウザ内で完結します。データが外部サーバーに送信されることはありません。
         </p>
         <Dropzone loading={loading} onFile={onFile} />
-        <div className="mt-6 flex items-center justify-center gap-3 text-sm">
+        <div className="mt-6 flex flex-wrap items-center justify-center gap-x-3 gap-y-2 text-sm">
           <span className="text-slate-400">または</span>
           <button
             type="button"
@@ -280,6 +316,17 @@ function LandingUploader({
             className="relative z-10 font-medium text-blue-600 hover:underline disabled:opacity-50 dark:text-blue-400"
           >
             サンプルフローで試す
+          </button>
+          <span className="text-slate-300 dark:text-slate-600" aria-hidden>
+            ·
+          </span>
+          <button
+            type="button"
+            onClick={onOpenHelp}
+            className="inline-flex items-center gap-1 font-medium text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
+          >
+            <CircleHelp size={14} aria-hidden />
+            使い方を見る
           </button>
         </div>
       </div>
