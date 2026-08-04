@@ -156,8 +156,39 @@ function deepCollect(
  * ======================================================================== */
 
 /**
- * アップロードされたファイル（.tfl もしくは .tflx）を解析し、ParsedFlow を返す。
+ * ブラウザのメモリ枯渇（巨大ファイル / ZIP bomb）を防ぐ上限。
+ * .tflx は .hyper 等を含むためアップロード自体は大きめを許容し、
+ * 実際に展開・文字列化するフロー定義 JSON だけを厳しく制限する。
  */
+export const FLOW_FILE_LIMITS = {
+  /** アップロード全体（圧縮後）の上限 */
+  maxUploadBytes: 80 * 1024 * 1024,
+  /** ZIP 内のファイルエントリ数上限（ディレクトリ除く） */
+  maxZipEntries: 500,
+  /** フロー定義として読み込む 1 エントリの展開後サイズ上限 */
+  maxFlowJsonBytes: 16 * 1024 * 1024,
+} as const;
+
+/** 人間が読めるバイト表記（エラーメッセージ用）。 */
+export function formatByteSize(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) {
+    const kb = bytes / 1024;
+    return `${kb < 10 ? kb.toFixed(2) : kb.toFixed(1)} KB`;
+  }
+  const mb = bytes / (1024 * 1024);
+  return `${mb < 100 ? mb.toFixed(2) : mb.toFixed(1)} MB`;
+}
+
+/** アップロードサイズが上限以内か検査する。超過時は日本語メッセージで throw。 */
+export function assertUploadSizeAllowed(byteLength: number): void {
+  if (byteLength > FLOW_FILE_LIMITS.maxUploadBytes) {
+    throw new Error(
+      `ファイルサイズが上限（${formatByteSize(FLOW_FILE_LIMITS.maxUploadBytes)}）を超えています（${formatByteSize(byteLength)}）。より小さいファイルでお試しください。`
+    );
+  }
+}
+
 /** 対応している拡張子か（中身の ZIP マジック判定は別途）。 */
 export function isSupportedFlowFileName(name: string): boolean {
   const lower = name.toLowerCase();
@@ -165,6 +196,8 @@ export function isSupportedFlowFileName(name: string): boolean {
 }
 
 export async function parseFlowFile(file: File): Promise<ParsedFlow> {
+  assertUploadSizeAllowed(file.size);
+
   const name = file.name.toLowerCase();
   const isZip = name.endsWith(".tflx") || (await looksLikeZip(file));
 
@@ -179,7 +212,19 @@ export async function parseFlowFile(file: File): Promise<ParsedFlow> {
   if (isZip) {
     jsonText = await extractFlowJsonFromZip(file);
   } else {
+    // 生 .tfl も展開後相当の上限でガード（巨大 JSON の一括読込を防ぐ）
+    if (file.size > FLOW_FILE_LIMITS.maxFlowJsonBytes) {
+      throw new Error(
+        `フロー定義が大きすぎます（上限 ${formatByteSize(FLOW_FILE_LIMITS.maxFlowJsonBytes)}、実際 ${formatByteSize(file.size)}）。`
+      );
+    }
     jsonText = await file.text();
+  }
+
+  if (new TextEncoder().encode(jsonText).byteLength > FLOW_FILE_LIMITS.maxFlowJsonBytes) {
+    throw new Error(
+      `フロー定義が大きすぎます（上限 ${formatByteSize(FLOW_FILE_LIMITS.maxFlowJsonBytes)}）。`
+    );
   }
 
   let doc: unknown;
@@ -208,12 +253,64 @@ async function looksLikeZip(file: File): Promise<boolean> {
   }
 }
 
+/** JSZip エントリの展開後サイズ（不明なら undefined）。 */
+function zipEntryUncompressedSize(entry: {
+  _data?: { uncompressedSize?: number };
+}): number | undefined {
+  const size = entry._data?.uncompressedSize;
+  return typeof size === "number" && Number.isFinite(size) ? size : undefined;
+}
+
+function isSkippedExtractAsset(entryName: string): boolean {
+  const lower = entryName.toLowerCase();
+  return (
+    lower.endsWith(".hyper") ||
+    lower.endsWith(".tde") ||
+    lower.endsWith(".csv") ||
+    lower.endsWith(".xlsx") ||
+    lower.endsWith(".xls") ||
+    lower.endsWith(".parquet")
+  );
+}
+
+/**
+ * サイズ検査付きで ZIP エントリを UTF-8 テキストとして読む。
+ * 展開前に uncompressedSize が分かる場合はそこで拒否し、ZIP bomb を抑止する。
+ */
+async function readZipEntryTextLimited(
+  entry: JSZip.JSZipObject,
+  maxBytes: number
+): Promise<string> {
+  const declared = zipEntryUncompressedSize(
+    entry as unknown as { _data?: { uncompressedSize?: number } }
+  );
+  if (declared !== undefined && declared > maxBytes) {
+    throw new Error(
+      `ZIP 内のフロー定義が大きすぎます（上限 ${formatByteSize(maxBytes)}、申告サイズ ${formatByteSize(declared)}）。`
+    );
+  }
+
+  const buf = await entry.async("uint8array");
+  if (buf.byteLength > maxBytes) {
+    throw new Error(
+      `ZIP 内のフロー定義が大きすぎます（上限 ${formatByteSize(maxBytes)}、実際 ${formatByteSize(buf.byteLength)}）。`
+    );
+  }
+  return new TextDecoder("utf-8").decode(buf);
+}
+
 /** .tflx (ZIP) から内部のフロー定義 JSON を取り出す。 */
 async function extractFlowJsonFromZip(file: File): Promise<string> {
   const zip = await JSZip.loadAsync(await file.arrayBuffer());
   const entries = Object.values(zip.files).filter((f) => !f.dir);
 
-  // 優先順位: 拡張子なしの "flow" → *.tfl → 最大の JSON っぽいファイル
+  if (entries.length > FLOW_FILE_LIMITS.maxZipEntries) {
+    throw new Error(
+      `ZIP 内のファイル数が上限（${FLOW_FILE_LIMITS.maxZipEntries}）を超えています（${entries.length} 件）。不正なパッケージの可能性があります。`
+    );
+  }
+
+  // 優先順位: 拡張子なしの "flow" → *.tfl → *.json
   const byName = (pred: (n: string) => boolean) =>
     entries.find((f) => pred(f.name.toLowerCase().split("/").pop() ?? ""));
 
@@ -222,23 +319,32 @@ async function extractFlowJsonFromZip(file: File): Promise<string> {
     byName((n) => n.endsWith(".tfl")) ??
     byName((n) => n.endsWith(".json"));
 
-  if (!target) {
-    // 拡張子で判定できない場合、内容が JSON っぽい最初のテキストファイルを探す
-    for (const f of entries) {
-      const lower = f.name.toLowerCase();
-      if (lower.endsWith(".hyper") || lower.endsWith(".tde")) continue;
-      const text = await f.async("string");
-      const trimmed = text.trimStart();
-      if (trimmed.startsWith("{")) {
-        return text;
-      }
-    }
-    throw new Error(
-      ".tflx 内にフロー定義ファイルが見つかりませんでした。"
-    );
+  if (target) {
+    return readZipEntryTextLimited(target, FLOW_FILE_LIMITS.maxFlowJsonBytes);
   }
 
-  return target.async("string");
+  // 拡張子で判定できない場合、抽出アセットを除き JSON っぽいテキストを探す
+  for (const f of entries) {
+    if (isSkippedExtractAsset(f.name)) continue;
+    const declared = zipEntryUncompressedSize(
+      f as unknown as { _data?: { uncompressedSize?: number } }
+    );
+    // 展開前に大きすぎるエントリは読まずスキップ（ZIP bomb / 巨大バイナリ対策）
+    if (
+      declared !== undefined &&
+      declared > FLOW_FILE_LIMITS.maxFlowJsonBytes
+    ) {
+      continue;
+    }
+    const text = await readZipEntryTextLimited(
+      f,
+      FLOW_FILE_LIMITS.maxFlowJsonBytes
+    );
+    if (text.trimStart().startsWith("{")) {
+      return text;
+    }
+  }
+  throw new Error(".tflx 内にフロー定義ファイルが見つかりませんでした。");
 }
 
 /* ===========================================================================

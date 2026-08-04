@@ -12,6 +12,7 @@ import {
   FileType2,
   Lightbulb,
 } from "lucide-react";
+import { FLOW_FILE_LIMITS, formatByteSize } from "@/utils/tflParser";
 
 interface Props {
   onBack: () => void;
@@ -181,8 +182,9 @@ export default function HelpGuide({ onBack, onTrySample }: Props) {
           </h3>
           <ul className="list-disc space-y-1 pl-5 text-sm text-amber-800/90 dark:text-amber-400/90">
             <li>
-              大きな .tflx でも処理はブラウザ内で行います。応答が遅い場合は少し待つか、
-              フローを分割して確認してください。
+              アップロードは最大 {formatByteSize(FLOW_FILE_LIMITS.maxUploadBytes)}、
+              フロー定義 JSON は最大 {formatByteSize(FLOW_FILE_LIMITS.maxFlowJsonBytes)}{" "}
+              までです。これを超えるファイルは拒否されます（ブラウザ保護のため）。
             </li>
             <li>
               診断の指摘はベストプラクティスの目安です。業務上必要な設計まで機械的に

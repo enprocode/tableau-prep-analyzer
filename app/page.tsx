@@ -14,7 +14,7 @@ import {
   ExternalLink,
   CircleHelp,
 } from "lucide-react";
-import { parseFlowFile, type ParsedFlow } from "@/utils/tflParser";
+import { parseFlowFile, FLOW_FILE_LIMITS, formatByteSize, type ParsedFlow } from "@/utils/tflParser";
 import { lintFlow, summarizeAlerts } from "@/utils/tflLinter";
 import FlowVisualizer from "@/components/FlowVisualizer";
 import LinterAlerts from "@/components/LinterAlerts";
@@ -408,7 +408,8 @@ function Dropzone({
         </p>
         {!compact && (
           <p className="mt-1 text-xs text-slate-400">
-            対応形式: .tfl（生 JSON） / .tflx（ZIP パッケージ）
+            対応形式: .tfl（生 JSON） / .tflx（ZIP パッケージ） / 上限{" "}
+            {formatByteSize(FLOW_FILE_LIMITS.maxUploadBytes)}
           </p>
         )}
       </label>
