@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useId, useMemo, useState } from "react";
 import {
   UploadCloud,
   Workflow,
@@ -268,13 +268,16 @@ function LandingUploader({
           すべての処理はブラウザ内で完結します。データが外部サーバーに送信されることはありません。
         </p>
         <Dropzone loading={loading} onFile={onFile} />
-        <div className="mt-4 flex items-center justify-center gap-3 text-sm">
+        <div className="mt-6 flex items-center justify-center gap-3 text-sm">
           <span className="text-slate-400">または</span>
           <button
             type="button"
-            onClick={onSample}
+            onClick={(e) => {
+              e.stopPropagation();
+              onSample();
+            }}
             disabled={loading}
-            className="font-medium text-blue-600 hover:underline disabled:opacity-50 dark:text-blue-400"
+            className="relative z-10 font-medium text-blue-600 hover:underline disabled:opacity-50 dark:text-blue-400"
           >
             サンプルフローで試す
           </button>
@@ -294,80 +297,74 @@ function Dropzone({
   compact?: boolean;
 }) {
   const [dragging, setDragging] = useState(false);
-  const inputRef = useRef<HTMLInputElement>(null);
-
-  const openPicker = () => {
-    if (!loading) inputRef.current?.click();
-  };
+  const inputId = useId();
 
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
     setDragging(false);
+    if (loading) return;
     const file = e.dataTransfer.files?.[0];
     if (file) onFile(file);
   };
 
+  // label + input でヒット領域を枠内に限定し、下のサンプルリンクと重ならないようにする
   return (
     <div
-      role="button"
-      tabIndex={0}
-      aria-label="フローファイルを選択（.tfl / .tflx）"
-      aria-disabled={loading}
       onDragOver={(e) => {
         e.preventDefault();
-        setDragging(true);
+        if (!loading) setDragging(true);
       }}
       onDragLeave={() => setDragging(false)}
       onDrop={handleDrop}
-      onClick={openPicker}
-      onKeyDown={(e) => {
-        if (e.key === "Enter" || e.key === " ") {
-          e.preventDefault();
-          openPicker();
-        }
-      }}
-      className={`flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 ${
-        compact ? "p-6" : "p-10"
-      } ${
+      className={`rounded-xl border-2 border-dashed transition-colors ${
         dragging
           ? "border-blue-500 bg-blue-50 dark:bg-blue-950/30"
           : "border-slate-300 bg-white hover:border-blue-400 dark:border-slate-600 dark:bg-slate-900"
       }`}
     >
-      <input
-        ref={inputRef}
-        type="file"
-        accept=".tfl,.tflx,application/json"
-        className="hidden"
-        onChange={(e) => {
-          const file = e.target.files?.[0];
-          if (file) onFile(file);
-          e.target.value = "";
-        }}
-      />
-      {loading ? (
-        <Loader2
-          className="mb-2 animate-spin text-blue-500"
-          size={compact ? 28 : 40}
-          aria-hidden
+      <label
+        htmlFor={loading ? undefined : inputId}
+        aria-disabled={loading}
+        className={`flex flex-col items-center justify-center ${
+          loading ? "cursor-wait" : "cursor-pointer"
+        } ${compact ? "p-6" : "p-10"}`}
+      >
+        <input
+          id={inputId}
+          type="file"
+          accept=".tfl,.tflx,application/json"
+          className="sr-only"
+          disabled={loading}
+          onChange={(e) => {
+            const file = e.target.files?.[0];
+            if (file) onFile(file);
+            e.target.value = "";
+          }}
         />
-      ) : (
-        <UploadCloud
-          className="mb-2 text-slate-400"
-          size={compact ? 28 : 40}
-          aria-hidden
-        />
-      )}
-      <p className="text-sm font-medium text-slate-700 dark:text-slate-200">
-        {loading
-          ? "解析中..."
-          : "ここにファイルをドラッグ＆ドロップ、またはクリックして選択"}
-      </p>
-      {!compact && (
-        <p className="mt-1 text-xs text-slate-400">
-          対応形式: .tfl（生 JSON） / .tflx（ZIP パッケージ）
+        {loading ? (
+          <Loader2
+            className="mb-2 animate-spin text-blue-500"
+            size={compact ? 28 : 40}
+            aria-hidden
+          />
+        ) : (
+          <UploadCloud
+            className="mb-2 text-slate-400"
+            size={compact ? 28 : 40}
+            aria-hidden
+          />
+        )}
+        <p className="text-sm font-medium text-slate-700 dark:text-slate-200">
+          {loading
+            ? "解析中..."
+            : "ここにファイルをドラッグ＆ドロップ、またはクリックして選択"}
         </p>
-      )}
+        {!compact && (
+          <p className="mt-1 text-xs text-slate-400">
+            対応形式: .tfl（生 JSON） / .tflx（ZIP パッケージ）
+          </p>
+        )}
+      </label>
     </div>
   );
 }
@@ -401,9 +398,12 @@ function DiffTab({
           <Dropzone loading={loading} onFile={onFileB} compact />
           <button
             type="button"
-            onClick={onSampleB}
+            onClick={(e) => {
+              e.stopPropagation();
+              onSampleB();
+            }}
             disabled={loading}
-            className="mt-3 text-sm font-medium text-blue-600 hover:underline disabled:opacity-50 dark:text-blue-400"
+            className="relative z-10 mt-4 text-sm font-medium text-blue-600 hover:underline disabled:opacity-50 dark:text-blue-400"
           >
             サンプル (v2) と比較する
           </button>

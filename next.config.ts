@@ -6,6 +6,8 @@ import type { NextConfig } from "next";
  */
 const nextConfig: NextConfig = {
   output: "export",
+  // next dev が AGENTS.md 末尾へ Next.js 固有ルールを追記するのを防ぐ
+  agentRules: false,
   images: {
     // 静的エクスポートでは Image Optimization API が使えないため無効化
     unoptimized: true,

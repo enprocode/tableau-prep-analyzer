@@ -3,14 +3,17 @@
 import { useCallback, useMemo, useState } from "react";
 import {
   ReactFlow,
+  ReactFlowProvider,
   Background,
   Controls,
   MiniMap,
   Handle,
   Position,
+  applyNodeChanges,
   type Node,
   type Edge,
   type NodeProps,
+  type OnNodesChange,
   MarkerType,
 } from "@xyflow/react";
 import type { FlowNode, ParsedFlow } from "@/utils/tflParser";
@@ -88,6 +91,107 @@ function TpfaNode({ data, selected }: NodeProps) {
 
 const nodeTypes = { tpfa: TpfaNode };
 
+function buildGraph(flow: ParsedFlow, selectedId: string | null): {
+  nodes: Node[];
+  edges: Edge[];
+} {
+  const positions = computeLayout(flow);
+  const nodes: Node[] = Object.values(flow.nodes).map((n) => ({
+    id: n.id,
+    type: "tpfa",
+    position: positions[n.id] ?? { x: 0, y: 0 },
+    selected: n.id === selectedId,
+    data: { flowNode: n } satisfies TpfaNodeData,
+  }));
+  const edges: Edge[] = flow.connections.map((c) => ({
+    id: c.id,
+    source: c.source,
+    target: c.target,
+    animated: true,
+    style: { stroke: "#94a3b8", strokeWidth: 2 },
+    markerEnd: { type: MarkerType.ArrowClosed, color: "#94a3b8" },
+  }));
+  return { nodes, edges };
+}
+
+function FlowCanvas({
+  flow,
+  selectedId,
+  setSelectedId,
+}: {
+  flow: ParsedFlow;
+  selectedId: string | null;
+  setSelectedId: (id: string | null) => void;
+}) {
+  const initial = useMemo(
+    () => buildGraph(flow, selectedId),
+    // 初回マウント用。フロー差し替えは下の render-time sync で扱う。
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- mount snapshot
+    []
+  );
+  const [nodes, setNodes] = useState<Node[]>(initial.nodes);
+  const [edges, setEdges] = useState<Edge[]>(initial.edges);
+  const [graphFlow, setGraphFlow] = useState(flow);
+  const [syncedSelected, setSyncedSelected] = useState(selectedId);
+
+  // props 変化時の state 調整（React 推奨の render-time sync）
+  if (flow !== graphFlow) {
+    const next = buildGraph(flow, selectedId);
+    setGraphFlow(flow);
+    setSyncedSelected(selectedId);
+    setNodes(next.nodes);
+    setEdges(next.edges);
+  } else if (selectedId !== syncedSelected) {
+    setSyncedSelected(selectedId);
+    setNodes((nds) =>
+      nds.map((n) => ({
+        ...n,
+        selected: n.id === selectedId,
+      }))
+    );
+  }
+
+  const onNodesChange: OnNodesChange = useCallback((changes) => {
+    setNodes((nds) => applyNodeChanges(changes, nds));
+  }, []);
+
+  const onNodeClick = useCallback(
+    (_: unknown, node: Node) => {
+      setSelectedId(node.id);
+    },
+    [setSelectedId]
+  );
+
+  return (
+    <ReactFlow
+      nodes={nodes}
+      edges={edges}
+      nodeTypes={nodeTypes}
+      onNodesChange={onNodesChange}
+      onNodeClick={onNodeClick}
+      onPaneClick={() => setSelectedId(null)}
+      nodesConnectable={false}
+      elementsSelectable
+      selectNodesOnDrag={false}
+      fitView
+      fitViewOptions={{ padding: 0.2 }}
+      minZoom={0.1}
+      proOptions={{ hideAttribution: true }}
+    >
+      <Background color="#cbd5e1" gap={20} />
+      <Controls />
+      <MiniMap
+        pannable
+        zoomable
+        nodeColor={(n) =>
+          getNodeTheme(((n.data as TpfaNodeData)?.flowNode?.type) ?? "Other")
+            .color
+        }
+      />
+    </ReactFlow>
+  );
+}
+
 export default function FlowVisualizer({
   flow,
   selectedId: controlledId,
@@ -103,70 +207,17 @@ export default function FlowVisualizer({
     [onSelectId]
   );
 
-  // レイアウトはフロー構造に依存。選択状態は別途付与し、選択変更でパン/ズームをリセットしない。
-  const { baseNodes, edges } = useMemo(() => {
-    const positions = computeLayout(flow);
-    const rfNodes: Node[] = Object.values(flow.nodes).map((n) => ({
-      id: n.id,
-      type: "tpfa",
-      position: positions[n.id] ?? { x: 0, y: 0 },
-      data: { flowNode: n } satisfies TpfaNodeData,
-    }));
-
-    const rfEdges: Edge[] = flow.connections.map((c) => ({
-      id: c.id,
-      source: c.source,
-      target: c.target,
-      animated: true,
-      style: { stroke: "#94a3b8", strokeWidth: 2 },
-      markerEnd: { type: MarkerType.ArrowClosed, color: "#94a3b8" },
-    }));
-
-    return { baseNodes: rfNodes, edges: rfEdges };
-  }, [flow]);
-
-  const nodes = useMemo(
-    () =>
-      baseNodes.map((n) => ({
-        ...n,
-        selected: n.id === selectedId,
-      })),
-    [baseNodes, selectedId]
-  );
-
-  const onNodeClick = useCallback(
-    (_: unknown, node: Node) => {
-      setSelectedId(node.id);
-    },
-    [setSelectedId]
-  );
-
   const selectedNode = selectedId ? flow.nodes[selectedId] ?? null : null;
 
   return (
     <div className="relative h-full w-full">
-      <ReactFlow
-        nodes={nodes}
-        edges={edges}
-        nodeTypes={nodeTypes}
-        onNodeClick={onNodeClick}
-        onPaneClick={() => setSelectedId(null)}
-        fitView
-        fitViewOptions={{ padding: 0.2 }}
-        minZoom={0.1}
-        proOptions={{ hideAttribution: true }}
-      >
-        <Background color="#cbd5e1" gap={20} />
-        <Controls />
-        <MiniMap
-          pannable
-          zoomable
-          nodeColor={(n) =>
-            getNodeTheme(((n.data as TpfaNodeData)?.flowNode?.type) ?? "Other")
-              .color
-          }
+      <ReactFlowProvider>
+        <FlowCanvas
+          flow={flow}
+          selectedId={selectedId}
+          setSelectedId={setSelectedId}
         />
-      </ReactFlow>
+      </ReactFlowProvider>
       <NodeDetailPanel node={selectedNode} onClose={() => setSelectedId(null)} />
     </div>
   );

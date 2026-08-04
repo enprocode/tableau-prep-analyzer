@@ -122,7 +122,7 @@ docs/                 # 詳細ドキュメント
 - [ ] `public/samples/` のサンプルで挙動を確認したか（必要なら新サンプルを追加）
 - [ ] `npm run lint` がクリーンか
 - [ ] `npm run build` が成功するか
-- [ ] `npx tsx scripts/smoke-test.mts` が期待通りか（ロジック変更時）
+- [ ] `npm run smoke` が期待通りか（ロジック変更時）
 - [ ] ユーザー向け文言は日本語か
 
 ---
