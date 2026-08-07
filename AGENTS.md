@@ -50,7 +50,7 @@ npm run dev                      # 開発サーバー (http://localhost:3000)
 npm run build                    # 本番ビルド（型チェックを含む）
 npm run start                    # 本番サーバー
 npm run lint                     # ESLint（Next 16 では `next lint` は廃止、これを使う）
-npx tsx scripts/smoke-test.mts   # パーサー/リンター/差分のロジック動作確認
+npm run smoke                    # パーサー/リンター/差分のロジック動作確認
 ```
 
 **完了の定義（Definition of Done）**: 変更後は最低限 `npm run lint` と `npm run build` を
@@ -71,6 +71,7 @@ components/           # プレゼンテーション層（"use client"）
   LinterAlerts.tsx    #   Phase 3: 診断結果 UI
   DocumentViewer.tsx  #   Phase 4: Markdown ドキュメント
   DiffViewer.tsx      #   Phase 5: 差分 UI
+  HelpGuide.tsx       #   アプリ内の使い方ガイド
 utils/                # ロジック層（UI 非依存・純粋関数中心）
   tflParser.ts        #   Phase 1: パース・正規化・共通型
   flowTheme.ts        #   ノードタイプ別の配色/アイコン
@@ -122,7 +123,7 @@ docs/                 # 詳細ドキュメント
 - [ ] `public/samples/` のサンプルで挙動を確認したか（必要なら新サンプルを追加）
 - [ ] `npm run lint` がクリーンか
 - [ ] `npm run build` が成功するか
-- [ ] `npx tsx scripts/smoke-test.mts` が期待通りか（ロジック変更時）
+- [ ] `npm run smoke` が期待通りか（ロジック変更時）
 - [ ] ユーザー向け文言は日本語か
 
 ---

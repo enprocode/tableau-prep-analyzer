@@ -122,12 +122,18 @@ async function copyToClipboard(text: string): Promise<boolean> {
 export default function DocumentViewer({ flow }: Props) {
   const markdown = useMemo(() => generateMarkdown(flow), [flow]);
   const [copied, setCopied] = useState(false);
+  const [copyError, setCopyError] = useState(false);
 
   const handleCopy = async () => {
     const ok = await copyToClipboard(markdown);
     if (ok) {
+      setCopyError(false);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
+    } else {
+      setCopied(false);
+      setCopyError(true);
+      setTimeout(() => setCopyError(false), 3000);
     }
   };
 
@@ -150,18 +156,24 @@ export default function DocumentViewer({ flow }: Props) {
         </h2>
         <div className="flex gap-2">
           <button
+            type="button"
             onClick={handleDownload}
             className="flex items-center gap-1.5 rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
           >
-            <Download size={15} />
+            <Download size={15} aria-hidden />
             .md 保存
           </button>
           <button
+            type="button"
             onClick={handleCopy}
             className="flex items-center gap-1.5 rounded-md bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-700"
           >
-            {copied ? <Check size={15} /> : <Copy size={15} />}
-            {copied ? "コピーしました" : "Markdownをコピー"}
+            {copied ? <Check size={15} aria-hidden /> : <Copy size={15} aria-hidden />}
+            {copied
+              ? "コピーしました"
+              : copyError
+                ? "コピーに失敗しました"
+                : "Markdownをコピー"}
           </button>
         </div>
       </div>
